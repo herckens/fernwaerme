@@ -91,7 +91,7 @@ def process_excel(
         quarter: Quarter string like "2025Q4"
         meter_reading: Current meter reading in kWh
         arbeitspreis: Price per MWh in CHF
-        leistungspreis: Leistungspreis Nettobetrag (total) in CHF
+        leistungspreis: Leistungspreis net amount in CHF
         co2_abgabe: CO2 fee amount in CHF (excl. MwSt.)
         overwrite: If True, delete existing sheet before creating new one
     """

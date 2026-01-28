@@ -78,15 +78,15 @@ Please extract these three values and respond ONLY with a JSON object (no markdo
 1. "arbeitspreis": The unit price per MWh in CHF for "Arbeitspreis".
    Look for the "Preis" column value (NOT the Nettobetrag which is the total).
 
-2. "leistungspreis": The TOTAL Nettobetrag for "FW Leistungspreis" in CHF.
-   This is the total amount (e.g., 435.75), NOT the monthly unit price (e.g., 145.25).
+2. "leistungspreis": The UNIT PRICE for "FW Leistungspreis" in CHF (the "Preis" column).
+   IMPORTANT: This is the monthly price (e.g., 145.25), NOT the total Nettobetrag (e.g., 435.75).
    The line looks like: "FW Leistungspreis 20.00 kW  3  Mt  145.25  435.75"
-   Extract 435.75 (the Nettobetrag total), not 145.25 (the unit price).
+   Extract 145.25 (the price), not 435.75 (the total).
 
 3. "co2_abgabe": The total CO2-Abgabe amount in CHF excluding MwSt.
    This is the sum of CO2 charges, typically shown in the Wärme section summary (e.g., 17.93).
 
-Respond with JSON like: {{"arbeitspreis": 54.00, "leistungspreis": 435.75, "co2_abgabe": 17.93}}
+Respond with JSON like: {{"arbeitspreis": 54.00, "leistungspreis": 145.25, "co2_abgabe": 17.93}}
 
 If a value cannot be found, use null.
 """
