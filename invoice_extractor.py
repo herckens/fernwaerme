@@ -2,12 +2,14 @@
 
 import asyncio
 import json
-import tempfile
+import os
 from pathlib import Path
 from dataclasses import dataclass
 
+# Suppress PaddleOCR connectivity check warnings
+os.environ["DISABLE_MODEL_SOURCE_CHECK"] = "True"
+
 from paddleocr import PaddleOCR
-from pdf2image import convert_from_path
 from copilot import CopilotClient
 
 
@@ -23,7 +25,7 @@ class InvoiceData:
 
 def extract_text_from_pdf(pdf_path: Path) -> str:
     """
-    Extract text from PDF using PaddleOCR.
+    Extract text from PDF using PaddleOCR's native PDF support.
 
     Args:
         pdf_path: Path to the PDF file
@@ -31,29 +33,19 @@ def extract_text_from_pdf(pdf_path: Path) -> str:
     Returns:
         Extracted text as a single string
     """
-    # Convert PDF to images
-    images = convert_from_path(pdf_path)
-
-    # Initialize PaddleOCR with German language support
-    ocr = PaddleOCR(use_angle_cls=True, lang="german", show_log=False)
+    # Initialize PaddleOCR with German/Latin language support
+    # PaddleOCR 3.x uses predict() method and new parameter names
+    ocr = PaddleOCR(use_textline_orientation=True, lang="german")
 
     all_text = []
 
-    for i, image in enumerate(images):
-        # Save image temporarily for PaddleOCR
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-            temp_path = tmp.name
-            image.save(temp_path, "PNG")
-
-        # Run OCR
-        result = ocr.ocr(temp_path, cls=True)
-
-        # Extract text from result
-        if result and result[0]:
-            for line in result[0]:
-                if line[1]:  # Has text
-                    text = line[1][0]
-                    all_text.append(text)
+    # PaddleOCR 3.x uses predict() which returns a generator of OCRResult objects
+    # Each OCRResult is dict-like with 'rec_texts' containing recognized text lines
+    for page_result in ocr.predict(str(pdf_path)):
+        if page_result and "rec_texts" in page_result:
+            texts = page_result["rec_texts"]
+            if texts:
+                all_text.extend(texts)
 
     return "\n".join(all_text)
 
@@ -83,11 +75,18 @@ Here is the OCR text from the invoice:
 
 Please extract these three values and respond ONLY with a JSON object (no markdown, no explanation):
 
-1. "arbeitspreis": The "Arbeitspreis" price per MWh in CHF. Look for "Preis CHF" in the Arbeitspreis section.
-2. "leistungspreis": The "FW Leistungspreis" Nettobetrag in CHF. Look for the net amount for Leistungspreis.
-3. "co2_abgabe": The "CO2-Abgabe" amount in CHF excluding MwSt. Look for the CO2 fee amount.
+1. "arbeitspreis": The unit price per MWh in CHF for "Arbeitspreis". 
+   Look for the "Preis" column value (NOT the Nettobetrag which is the total).
 
-Respond with JSON like: {{"arbeitspreis": 49.00, "leistungspreis": 145.25, "co2_abgabe": 0.16}}
+2. "leistungspreis": The TOTAL Nettobetrag for "FW Leistungspreis" in CHF.
+   This is the total amount (e.g., 435.75), NOT the monthly unit price (e.g., 145.25).
+   The line looks like: "FW Leistungspreis 20.00 kW  3  Mt  145.25  435.75"
+   Extract 435.75 (the Nettobetrag total), not 145.25 (the unit price).
+
+3. "co2_abgabe": The total CO2-Abgabe amount in CHF excluding MwSt.
+   This is the sum of CO2 charges, typically shown in the Wärme section summary (e.g., 17.93).
+
+Respond with JSON like: {{"arbeitspreis": 54.00, "leistungspreis": 435.75, "co2_abgabe": 17.93}}
 
 If a value cannot be found, use null.
 """

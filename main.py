@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 from invoice_extractor import extract_invoice_data, InvoiceData
-from excel_processor import process_excel
+from excel_processor import process_excel, quarter_to_sheet_name
 
 
 def get_user_input() -> tuple[str, float]:
@@ -149,6 +149,25 @@ def main():
 
     print(f"\nUpdating Excel file: {excel_path}")
 
+    # Check if sheet already exists
+    from openpyxl import load_workbook
+
+    sheet_name = quarter_to_sheet_name(quarter)
+    wb = load_workbook(excel_path)
+    overwrite = False
+    if sheet_name in wb.sheetnames:
+        confirm = (
+            input(f"\nSheet '{sheet_name}' already exists. Overwrite? [y/N]: ")
+            .strip()
+            .lower()
+        )
+        if confirm != "y":
+            print("Aborted.")
+            wb.close()
+            sys.exit(0)
+        overwrite = True
+    wb.close()
+
     try:
         process_excel(
             excel_path=excel_path,
@@ -157,8 +176,9 @@ def main():
             arbeitspreis=arbeitspreis,
             leistungspreis=leistungspreis,
             co2_abgabe=co2_abgabe,
+            overwrite=overwrite,
         )
-        print(f"\nSuccess! Sheet '{quarter}' has been created and populated.")
+        print(f"\nSuccess! Sheet '{sheet_name}' has been created and populated.")
     except Exception as e:
         print(f"\nError updating Excel: {e}")
         sys.exit(1)
