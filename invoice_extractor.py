@@ -63,7 +63,7 @@ async def parse_invoice_with_ai(ocr_text: str) -> dict:
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({"model": "gpt-4o"})
+    session = await client.create_session({"model": "gpt-5-mini"})
 
     prompt = f"""You are extracting specific values from a Swiss district heating (Fernwärme) invoice.
 
@@ -75,7 +75,7 @@ Here is the OCR text from the invoice:
 
 Please extract these three values and respond ONLY with a JSON object (no markdown, no explanation):
 
-1. "arbeitspreis": The unit price per MWh in CHF for "Arbeitspreis". 
+1. "arbeitspreis": The unit price per MWh in CHF for "Arbeitspreis".
    Look for the "Preis" column value (NOT the Nettobetrag which is the total).
 
 2. "leistungspreis": The TOTAL Nettobetrag for "FW Leistungspreis" in CHF.
