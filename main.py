@@ -75,7 +75,7 @@ def confirm_values(
 
     # Leistungspreis
     if data.leistungspreis is not None:
-        print(f"Leistungspreis (Nettobetrag): {data.leistungspreis:.2f} CHF")
+        print(f"Leistungspreis (Preis pro Monat): {data.leistungspreis:.2f} CHF")
         confirm = input("Correct? [Y/n]: ").strip().lower()
         if confirm == "n":
             leistungspreis = prompt_for_value("Leistungspreis", "CHF")
@@ -132,7 +132,7 @@ def main():
     print(f"Quarter: {quarter}")
     print(f"Meter reading: {meter_reading:.3f} kWh")
     print(f"Arbeitspreis: {arbeitspreis:.2f} CHF/MWh")
-    print(f"Leistungspreis: {leistungspreis:.2f} CHF")
+    print(f"Leistungspreis: {leistungspreis:.2f} CHF/Monat")
     print(f"CO2-Abgabe: {co2_abgabe:.2f} CHF")
 
     confirm = input("\nProceed with Excel update? [Y/n]: ").strip().lower()

@@ -11,6 +11,7 @@ os.environ["DISABLE_MODEL_SOURCE_CHECK"] = "True"
 
 from paddleocr import PaddleOCR
 from copilot import CopilotClient
+from copilot.session import PermissionHandler
 
 
 @dataclass
@@ -63,7 +64,10 @@ async def parse_invoice_with_ai(ocr_text: str) -> dict:
     client = CopilotClient()
     await client.start()
 
-    session = await client.create_session({"model": "gpt-5-mini"})
+    session = await client.create_session(
+        on_permission_request=PermissionHandler.approve_all,
+        model="gpt-5-mini",
+    )
 
     prompt = f"""You are extracting specific values from a Swiss district heating (Fernwärme) invoice.
 
@@ -102,7 +106,7 @@ If a value cannot be found, use null.
             done.set()
 
     session.on(on_event)
-    await session.send({"prompt": prompt})
+    await session.send(prompt)
     await done.wait()
 
     await session.destroy()
