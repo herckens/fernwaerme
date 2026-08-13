@@ -1,15 +1,11 @@
-"""Invoice extractor using PaddleOCR and GitHub Copilot SDK."""
+"""Invoice extractor using native PDF text extraction and GitHub Copilot SDK."""
 
 import asyncio
 import json
-import os
 from pathlib import Path
 from dataclasses import dataclass
 
-# Suppress PaddleOCR connectivity check warnings
-os.environ["DISABLE_MODEL_SOURCE_CHECK"] = "True"
-
-from paddleocr import PaddleOCR
+import pdfplumber
 from copilot import CopilotClient
 from copilot.session import PermissionHandler
 
@@ -26,7 +22,7 @@ class InvoiceData:
 
 def extract_text_from_pdf(pdf_path: Path) -> str:
     """
-    Extract text from PDF using PaddleOCR's native PDF support.
+    Extract text from a born-digital PDF, preserving layout.
 
     Args:
         pdf_path: Path to the PDF file
@@ -34,29 +30,21 @@ def extract_text_from_pdf(pdf_path: Path) -> str:
     Returns:
         Extracted text as a single string
     """
-    # Initialize PaddleOCR with German/Latin language support
-    # PaddleOCR 3.x uses predict() method and new parameter names
-    ocr = PaddleOCR(use_textline_orientation=True, lang="german")
-
-    all_text = []
-
-    # PaddleOCR 3.x uses predict() which returns a generator of OCRResult objects
-    # Each OCRResult is dict-like with 'rec_texts' containing recognized text lines
-    for page_result in ocr.predict(str(pdf_path)):
-        if page_result and "rec_texts" in page_result:
-            texts = page_result["rec_texts"]
-            if texts:
-                all_text.extend(texts)
-
-    return "\n".join(all_text)
+    pages: list[str] = []
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            text = page.extract_text(layout=True) or ""
+            if text.strip():
+                pages.append(text)
+    return "\n".join(pages)
 
 
-async def parse_invoice_with_ai(ocr_text: str) -> dict:
+async def parse_invoice_with_ai(invoice_text: str) -> dict:
     """
     Use Copilot SDK to intelligently parse invoice text.
 
     Args:
-        ocr_text: Raw OCR text from the invoice
+        invoice_text: Raw text extracted from the invoice PDF
 
     Returns:
         Dictionary with extracted values
@@ -71,10 +59,10 @@ async def parse_invoice_with_ai(ocr_text: str) -> dict:
 
     prompt = f"""You are extracting specific values from a Swiss district heating (Fernwärme) invoice.
 
-Here is the OCR text from the invoice:
+Here is the text from the invoice:
 
 ---
-{ocr_text}
+{invoice_text}
 ---
 
 Please extract these three values and respond ONLY with a JSON object (no markdown, no explanation):
@@ -137,10 +125,7 @@ def extract_invoice_data(pdf_path: Path) -> InvoiceData:
     Returns:
         InvoiceData with extracted values
     """
-    # Step 1: Extract text with OCR
     raw_text = extract_text_from_pdf(pdf_path)
-
-    # Step 2: Parse with AI
     parsed = asyncio.run(parse_invoice_with_ai(raw_text))
 
     return InvoiceData(

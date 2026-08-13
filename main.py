@@ -7,6 +7,17 @@ from invoice_extractor import extract_invoice_data, InvoiceData
 from excel_processor import process_excel, quarter_to_sheet_name
 
 
+def find_invoice_pdf(input_dir: Path, quarter: str) -> Path | None:
+    """Find Rechnung_{quarter}.pdf, matching the extension case-insensitively."""
+    expected = f"Rechnung_{quarter}.pdf".lower()
+    if not input_dir.is_dir():
+        return None
+    for path in input_dir.iterdir():
+        if path.is_file() and path.name.lower() == expected:
+            return path
+    return None
+
+
 def get_user_input() -> tuple[str, float]:
     """
     Get quarter and meter reading from user.
@@ -107,13 +118,14 @@ def main():
     # Get user input
     quarter, meter_reading = get_user_input()
 
-    # Check for invoice file
+    # Check for invoice file (.pdf / .PDF)
     input_dir = Path("input")
-    pdf_path = input_dir / f"Rechnung_{quarter}.pdf"
+    pdf_path = find_invoice_pdf(input_dir, quarter)
 
-    if not pdf_path.exists():
-        print(f"\nError: Invoice file not found: {pdf_path}")
-        print(f"Please place the invoice PDF at: {pdf_path.absolute()}")
+    if pdf_path is None:
+        expected = input_dir / f"Rechnung_{quarter}.pdf"
+        print(f"\nError: Invoice file not found: {expected}")
+        print(f"Please place the invoice PDF at: {expected.absolute()}")
         sys.exit(1)
 
     print(f"\nProcessing invoice: {pdf_path}")
