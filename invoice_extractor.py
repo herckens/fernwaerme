@@ -54,7 +54,7 @@ async def parse_invoice_with_ai(invoice_text: str) -> dict:
 
     session = await client.create_session(
         on_permission_request=PermissionHandler.approve_all,
-        model="gpt-5-mini",
+        model="gpt-6.1-sol",
     )
 
     prompt = f"""You are extracting specific values from a Swiss district heating (Fernwärme) invoice.
@@ -97,7 +97,7 @@ If a value cannot be found, use null.
     await session.send(prompt)
     await done.wait()
 
-    await session.destroy()
+    await session.disconnect()
     await client.stop()
 
     # Parse the JSON response
